@@ -4,8 +4,10 @@ from copy import deepcopy
 import torch
 import torch.utils.data as data
 from tqdm import tqdm
-from model.tree import Tree
 
+from config import load_dictionary
+from model.tree import Tree
+import torch.nn.functional as F
 from data import constants
 
 
@@ -15,7 +17,7 @@ class SSTDataset(data.Dataset):
     (SST) (https://nlp.stanford.edu/sentiment/)
     """
 
-    def __init__(self, path=None, vocab=None, num_classes=None):
+    def __init__(self, path=None, vocab=None, num_classes=None, dictionaries = []):
         super(SSTDataset, self).__init__()
 
         self.num_classes = num_classes
@@ -24,21 +26,23 @@ class SSTDataset(data.Dataset):
 
         self.vocab = vocab
         self.num_classes = num_classes
-        skladnica_sentences, skladnica_trees = self.create_trees(path, 'sklad')
+        skladnica_sentences, skladnica_trees, skladnica_dict = self.create_trees(path, 'sklad', dictionaries)
 
-        reviews_sentences, reviews_trees = self.create_trees(path, 'rev')
+        reviews_sentences, reviews_trees, reviews_dict = self.create_trees(path, 'rev', dictionaries)
 
-        test_sentences, test_trees = self.create_trees(path, 'polevaltest')
+        test_sentences, test_trees, test_dict = self.create_trees(path, 'polevaltest', dictionaries)
 
         if test_trees:
             self.trees = test_trees
             self.sentences = test_sentences
+            self.dict = test_dict
             self.labels = []
             for i in range(0, len(self.trees)):
                 self.labels.append(self.trees[i].gold_label)
         else:
             self.trees = skladnica_trees + reviews_trees  # list concatenation
             self.sentences = skladnica_sentences + reviews_sentences
+            self.dict = skladnica_dict + reviews_dict
             self.labels = []
 
             for i in range(0, len(self.trees)):
@@ -53,7 +57,7 @@ class SSTDataset(data.Dataset):
 
     @classmethod
     def create_dataset_from_user_input(cls, sentence_path, parents_path,
-                                       vocab=None, num_classes=None):
+                                       vocab=None, num_classes=None,dictionaries = []):
         dataset = cls()
         dataset.vocab = vocab
         dataset.num_classes = num_classes
@@ -75,12 +79,13 @@ class SSTDataset(data.Dataset):
         tree = deepcopy(self.trees[index])
         sent = deepcopy(self.sentences[index])
         label = deepcopy(self.labels[index])
-        return tree, sent, label
+        dict = deepcopy(self.dict[index])
+        return tree, sent, dict, label
 
-    def create_trees(self, path, file_type):
+    def create_trees(self, path, file_type, dictionaries):
         if os.path.isfile(os.path.join(path, file_type + '_sentence.txt')):
-            sentences = self.read_sentences(
-                os.path.join(path, file_type + '_sentence.txt')
+            sentences, dictionary_sentiments = self.read_sentences(
+                os.path.join(path, file_type + '_sentence.txt'), dictionaries
             )
             trees = self.read_trees(
                 filename_parents=os.path.join(path, file_type + '_parents.txt'),
@@ -88,15 +93,25 @@ class SSTDataset(data.Dataset):
                 filename_tokens=os.path.join(path, file_type + '_sentence.txt'),
                 filename_relations=os.path.join(path, file_type + '_rels.txt'),
             )
-            return sentences, trees
+            return sentences, trees, dictionary_sentiments
         else:
-            return None, None
+            return None, None, None
 
-    def read_sentences(self, filename):
+    def read_sentences(self, filename, dictionaries):
         with open(filename, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
             sentences = [self.read_sentence(line)
-                         for line in tqdm(f.readlines())]
-        return sentences
+                         for line in tqdm(lines)]
+            sentiments = [self.get_sentiments(line, dictionaries) for line in tqdm(lines)]
+        return sentences, sentiments
+
+    def get_sentiments(self, line, dictionaries):
+        sentiments = []
+        for dictionary in dictionaries:
+            values = [dictionary.get(word,0) for word in line.split()]
+            values = F.torch.unsqueeze(torch.FloatTensor(values), 1)
+            sentiments.append(values)
+        return torch.cat(sentiments, 1)
 
     def read_sentence(self, line):
         indices = self.vocab.convert_to_idx(line.split(), constants.UNK_WORD)

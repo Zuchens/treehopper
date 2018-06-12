@@ -6,6 +6,8 @@ import os
 import torch
 import torch.optim as optim
 from torch import nn
+
+from dictionary import load_dictionary
 from model.model import TreeLSTMSentiment
 from model.sentiment_trainer import SentimentTrainer
 
@@ -22,7 +24,7 @@ def choose_optimizer(args, model):
             ], lr=args.lr, weight_decay=args.wd)
 
 
-def train(train_dataset, dev_dataset, vocab, args):
+def train(train_dataset, dev_dataset, vocab, args, dictionaries):
     # Optionally reweight loss per class to the distribution of classes in
     # the public dataset
     weight = torch.Tensor([1/0.024, 1/0.820, 1/0.156]) if args.reweight else None
@@ -31,7 +33,7 @@ def train(train_dataset, dev_dataset, vocab, args):
     # initialize model, criterion/loss_function, optimizer
     embedding_model = load_embedding_model(args,vocab)
 
-    model = TreeLSTMSentiment(args=args, criterion=criterion, embeddings=embedding_model, vocab=vocab)
+    model = TreeLSTMSentiment(args=args, criterion=criterion, embeddings=embedding_model, vocab=vocab, dictionaries = dictionaries)
 
     if args.cuda:
         model.cuda()

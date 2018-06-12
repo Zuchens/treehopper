@@ -30,13 +30,18 @@ class SentimentTrainer(object):
         # torch.manual_seed(789)
         indices = torch.randperm(len(dataset))
         for idx in tqdm(range(len(dataset)),desc='Training epoch '+str(self.epoch+1)+''):
-            tree, sent, label = dataset[indices[idx]]
+            tree, sent, dict, label = dataset[indices[idx]]
             input = Var(sent)
+
             target = Var(torch.LongTensor([int(label)]))
             if self.args.cuda:
                 input = input.cuda()
                 target = target.cuda()
-            emb = F.torch.unsqueeze(self.embedding_model(input), 1)
+            embeddings = self.embedding_model(input)
+            dictionaries = Var(dict)
+            inputs = torch.cat((embeddings, dictionaries), 1)
+            emb = F.torch.unsqueeze(inputs, 1)
+
             output, err, _, _ = self.model.forward(tree, emb, training=True)
             #params = self.model.childsumtreelstm.getParameters()
             # params_norm = params.norm()
@@ -64,13 +69,16 @@ class SentimentTrainer(object):
         output_trees = []
         outputs = []
         for idx in tqdm(range(len(dataset)), desc='Testing epoch  '+str(self.epoch)+''):
-            tree, sent, label = dataset[idx]
+            tree, sent, dict,  label = dataset[idx]
             input = Var(sent, volatile=True)
             target = Var(torch.LongTensor([int(label)]), volatile=True)
             if self.args.cuda:
                 input = input.cuda()
                 target = target.cuda()
-            emb = F.torch.unsqueeze(self.embedding_model(input),1)
+            embeddings = self.embedding_model(input)
+            dictionaries = Var(dict)
+            inputs = torch.cat((embeddings, dictionaries), 1)
+            emb = F.torch.unsqueeze(inputs, 1)
             output, _, acc, tree = self.model(tree, emb)
             err = self.criterion(output, target)
             loss += err.data[0]
@@ -87,7 +95,10 @@ class SentimentTrainer(object):
         for idx in tqdm(range(len(dataset)), desc='Predcting results'):
             tree, sent, _ = dataset[idx]
             input = Var(sent, volatile=True)
-            emb = F.torch.unsqueeze(self.embedding_model(input), 1)
+            embeddings = self.embedding_model(input)
+            dictionaries = Var(dict)
+            inputs = torch.cat((embeddings, dictionaries), 1)
+            emb = F.torch.unsqueeze(inputs, 1)
             output, _, acc, tree = self.model(tree, emb)
             output_trees.append(tree)
         return output_trees

@@ -13,7 +13,8 @@ def predict(args):
     test_dataset = SSTDataset.create_dataset_from_user_input(
         args.input_sentences, args.input_parents,
         trainer_instance.model.vocab,
-        num_classes=3
+        num_classes=3,
+        dictionaries=trainer_instance.model.dictionaries
     )
     test_trees = trainer_instance.predict(test_dataset)
     return test_trees
@@ -28,20 +29,18 @@ def save_predictions(predictions, filename):
 
 def load_best_model(model_filename, args):
     model = torch.load(model_filename)
-    trainer = SentimentTrainer(args, model,criterion=nn.NLLLoss(), optimizer=None)
+    trainer = SentimentTrainer(args, model, criterion=nn.NLLLoss(), optimizer=None)
     return trainer
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='PyTorch TreeLSTM for Sentiment Analysis Trees - Predictions')
     parser.add_argument('--model_path', help='Path to saved model', required=True)
-    parser.add_argument('--input_parents', help='Path to parent input directory', default="test/polevaltest_parents.txt")
+    parser.add_argument('--input_parents', help='Path to parent input directory',
+                        default="test/polevaltest_parents.txt")
     parser.add_argument('--input_sentences', help='Path to sentence input directory',
                         default="test/polevaltest_sentence.txt")
     parser.add_argument('--output', help='Path to file with predictions', default="predictions.txt")
     args = train.set_arguments({}, parser)
     predictions = predict(args)
     save_predictions(predictions, args.output)
-
-
-

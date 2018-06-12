@@ -10,7 +10,7 @@ from data.dataset import SSTDataset
 
 def eval(args):
     trainer_instance = load_best_model(args.model_path, args)
-    test_dataset = SSTDataset(args.input, trainer_instance.model.vocab, num_classes=3)
+    test_dataset = SSTDataset(args.input, trainer_instance.model.vocab, num_classes=3, dictionaries=trainer_instance.model.dictionaries)
     loss, accuracies, outputs, output_trees = trainer_instance.test(test_dataset)
     test_acc = torch.mean(accuracies)
     return test_acc

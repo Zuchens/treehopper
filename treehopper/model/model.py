@@ -7,10 +7,10 @@ from model.zoneout import zoneout
 
 
 class ChildSumTreeLSTM(nn.Module):
-    def __init__(self, args, criterion, output_module):
+    def __init__(self, args, criterion, output_module, dict_size = 0):
         super(ChildSumTreeLSTM, self).__init__()
         self.cuda_flag = args.cuda
-        self.in_dim = args.input_dim
+        self.in_dim = args.input_dim +dict_size
         self.mem_dim = args.mem_dim
         self.recurrent_dropout_c = args.recurrent_dropout_c
         self.recurrent_dropout_h = args.recurrent_dropout_h
@@ -138,11 +138,12 @@ class SentimentModule(nn.Module):
 
 
 class TreeLSTMSentiment(nn.Module):
-    def __init__(self, args, criterion, embeddings, vocab):
+    def __init__(self, args, criterion, embeddings, vocab, dictionaries = []):
         super(TreeLSTMSentiment, self).__init__()
         self.output_module = SentimentModule(args, dropout=0.5)
+        self.dictionaries = dictionaries
         self.tree_module = ChildSumTreeLSTM(args, criterion,
-                                            output_module=self.output_module)
+                                            output_module=self.output_module, dict_size = len(dictionaries))
         self.embeddings = embeddings
         self.vocab = vocab
 

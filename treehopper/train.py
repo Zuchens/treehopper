@@ -6,10 +6,10 @@ from sklearn.model_selection import KFold
 from config import set_arguments
 from data.split_datasets import split_dataset_kfold, split_dataset_simple
 from data.vocab import build_vocab, Vocab
+from config import load_dictionary
 from model.training import train
 
 from data.dataset import SSTDataset
-
 
 
 def create_full_dataset(args):
@@ -19,24 +19,25 @@ def create_full_dataset(args):
         'training-treebank/rev_sentence.txt',
         'training-treebank/sklad_sentence.txt',
         'test/polevaltest_sentence.txt',
-        args.emb_dir+args.emb_file+'.vec' #full vocabulary in model
+        args.emb_dir + args.emb_file + '.vec'  # full vocabulary in model
     ], 'tmp/vocab.txt')
     vocab = Vocab(filename=vocab_file)
-    full_dataset = SSTDataset(train_dir, vocab, args.num_classes)
+    dictionaries = load_dictionary(args.dictionaries)
+    full_dataset = SSTDataset(train_dir, vocab, args.num_classes, dictionaries)
     return vocab, full_dataset
 
 
-def main(grid_args = None):
+def main(grid_args=None):
     args = set_arguments(grid_args)
     vocab, full_dataset = create_full_dataset(args)
-
+    dictionaries = load_dictionary(args.dictionaries)
     if args.test:
         test_dir = 'test'
-        test_dataset = SSTDataset(test_dir, vocab, args.num_classes)
-        max_dev_epoch, max_dev_acc, max_model_filename = train(full_dataset, test_dataset, vocab, args)
+        test_dataset = SSTDataset(test_dir, vocab, args.num_classes, dictionaries)
+        max_dev_epoch, max_dev_acc, max_model_filename = train(full_dataset, test_dataset, vocab, args, dictionaries)
     else:
-        train_dataset = SSTDataset(num_classes=args.num_classes)
-        dev_dataset   = SSTDataset(num_classes=args.num_classes)
+        train_dataset = SSTDataset(num_classes=args.num_classes, dictionaries=dictionaries)
+        dev_dataset = SSTDataset(num_classes=args.num_classes, dictionaries=dictionaries)
 
         train_dataset, dev_dataset = split_dataset_simple(
             full_dataset,
@@ -44,7 +45,7 @@ def main(grid_args = None):
             dev_dataset,
             split=args.split
         )
-        max_dev_epoch, max_dev_acc, max_model_filename = train(train_dataset, dev_dataset, vocab, args)
+        max_dev_epoch, max_dev_acc, max_model_filename = train(train_dataset, dev_dataset, vocab, args, dictionaries)
 
     with open(args.name + '_results', 'a') as result_file:
         result_file.write(str(args) + '\nEpoch {epoch}, accuracy {acc:.4f}\n'.format(
@@ -52,6 +53,7 @@ def main(grid_args = None):
             acc=max_dev_acc
         ))
     return max_dev_epoch, max_dev_acc, max_model_filename
+
 
 if __name__ == "__main__":
     main()

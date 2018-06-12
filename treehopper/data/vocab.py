@@ -11,8 +11,9 @@ def build_vocab(filenames, vocabfile):
     vocab = set()
     for filename in filenames:
         if filename.endswith('.vec'):
-            model = FastText.load_word2vec_format(filename)
-            vocab |= set(model.vocab.keys())
+            if os.path.exists(filename):
+                model = FastText.load_word2vec_format(filename)
+                vocab |= set(model.vocab.keys())
         else:
             with open(filename, 'r', encoding='utf-8') as f:
                 for line in f:
@@ -27,6 +28,7 @@ class Vocab(object):
     def __init__(self, filename=None):
         self.idx_to_token = {}
         self.token_to_idx = {}
+
 
         if filename:
             self.load_file(filename)

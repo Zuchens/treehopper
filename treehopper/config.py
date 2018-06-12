@@ -52,7 +52,7 @@ def parse_args_train(parser = None):
         parser.add_argument('--use_full_training_set', default=True,
                             help='Train of full PolEval training set, '
                                  'i.e. train+dev')
-
+        parser.add_argument('--dictionaries', nargs='+', help='added dictionaries paths')
         cuda_parser = parser.add_mutually_exclusive_group(required=False)
         cuda_parser.add_argument('--cuda', dest='cuda', action='store_true')
         cuda_parser.add_argument('--no-cuda', dest='cuda', action='store_false')
@@ -83,3 +83,17 @@ def set_arguments(grid_args, parser = None):
     args.test = args.use_full_training_set
     print(args)
     return args
+
+import csv
+
+
+def load_dictionary(dictionaries_path):
+    dictionaries = []
+    for path in dictionaries_path:
+        dictionary = {}
+        with open(path, 'r') as csvfile:
+            spamreader = csv.reader(csvfile, delimiter='\t')
+            for row in spamreader:
+                dictionary[row[0]] = float(row[-1])
+        dictionaries.append(dictionary)
+    return dictionaries
