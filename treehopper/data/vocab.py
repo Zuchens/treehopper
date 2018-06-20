@@ -2,6 +2,8 @@ import os
 
 from gensim.models.wrappers import FastText
 
+import data.constants
+
 
 def build_vocab(filenames, vocabfile):
     """Write unique words from a set of files to a new file"""
@@ -41,7 +43,7 @@ class Vocab(object):
         for line in open(filename, encoding='utf-8'):
             self.add_token(line.rstrip('\n'))
 
-    def get_index(self, key, default=None):
+    def get_index(self, key, default=data.constants.UNK):
         key = key.lower()
         try:
             return self.token_to_idx[key]

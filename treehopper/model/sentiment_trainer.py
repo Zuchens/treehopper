@@ -39,7 +39,10 @@ class SentimentTrainer(object):
                 target = target.cuda()
             embeddings = self.embedding_model(input)
             dictionaries = Var(dict)
-            inputs = torch.cat((embeddings, dictionaries), 1)
+            if dictionaries is not None:
+                inputs = torch.cat((embeddings, dictionaries), 1)
+            else:
+                inputs = embeddings
             emb = F.torch.unsqueeze(inputs, 1)
 
             output, err, _, _ = self.model.forward(tree, emb, training=True)
@@ -77,7 +80,10 @@ class SentimentTrainer(object):
                 target = target.cuda()
             embeddings = self.embedding_model(input)
             dictionaries = Var(dict)
-            inputs = torch.cat((embeddings, dictionaries), 1)
+            if dictionaries is not None:
+                inputs = torch.cat((embeddings, dictionaries), 1)
+            else:
+                inputs = embeddings
             emb = F.torch.unsqueeze(inputs, 1)
             output, _, acc, tree = self.model(tree, emb)
             err = self.criterion(output, target)
@@ -93,7 +99,7 @@ class SentimentTrainer(object):
         self.embedding_model.eval()
         output_trees = []
         for idx in tqdm(range(len(dataset)), desc='Predcting results'):
-            tree, sent, _ = dataset[idx]
+            tree, sent, dict, _ = dataset[idx]
             input = Var(sent, volatile=True)
             embeddings = self.embedding_model(input)
             dictionaries = Var(dict)

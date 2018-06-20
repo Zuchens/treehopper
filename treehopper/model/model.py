@@ -138,12 +138,12 @@ class SentimentModule(nn.Module):
 
 
 class TreeLSTMSentiment(nn.Module):
-    def __init__(self, args, criterion, embeddings, vocab, dictionaries = []):
+    def __init__(self, args, criterion, embeddings, vocab, dictionaries = [], dict_size = 0):
         super(TreeLSTMSentiment, self).__init__()
         self.output_module = SentimentModule(args, dropout=0.5)
         self.dictionaries = dictionaries
         self.tree_module = ChildSumTreeLSTM(args, criterion,
-                                            output_module=self.output_module, dict_size = len(dictionaries))
+                                            output_module=self.output_module, dict_size = dict_size)
         self.embeddings = embeddings
         self.vocab = vocab
 

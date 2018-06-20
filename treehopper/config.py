@@ -14,9 +14,9 @@ def parse_args_train(parser = None):
                             help='name for log and saved models')
         parser.add_argument('--data', default='training-treebank',
                             help='path to dataset')
-        parser.add_argument('--emb_dir', default='resources/pol/fasttext/',
+        parser.add_argument('--emb_dir', default='resources/waw/',
                             help='directory with embeddings')
-        parser.add_argument('--emb_file', default='wiki.pl',
+        parser.add_argument('--emb_file', default='w2v_allwiki_nkjp300_50',
                             help='file with embeddings')
         parser.add_argument('--batchsize', default=25, type=int,
                             help='batchsize for optimizer updates')
@@ -52,7 +52,7 @@ def parse_args_train(parser = None):
         parser.add_argument('--use_full_training_set', default=True,
                             help='Train of full PolEval training set, '
                                  'i.e. train+dev')
-        parser.add_argument('--dictionaries', nargs='+', help='added dictionaries paths')
+        parser.add_argument('--dictionaries', nargs='+', help='added dictionaries paths', default=[])
         cuda_parser = parser.add_mutually_exclusive_group(required=False)
         cuda_parser.add_argument('--cuda', dest='cuda', action='store_true')
         cuda_parser.add_argument('--no-cuda', dest='cuda', action='store_false')
@@ -87,7 +87,7 @@ def set_arguments(grid_args, parser = None):
 import csv
 
 
-def load_dictionary(dictionaries_path):
+def load_dictionary(dictionaries_path = []):
     dictionaries = []
     for path in dictionaries_path:
         dictionary = {}

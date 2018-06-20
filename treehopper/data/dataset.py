@@ -31,18 +31,21 @@ class SSTDataset(data.Dataset):
         reviews_sentences, reviews_trees, reviews_dict = self.create_trees(path, 'rev', dictionaries)
 
         test_sentences, test_trees, test_dict = self.create_trees(path, 'polevaltest', dictionaries)
+        self.dict = None
 
         if test_trees:
             self.trees = test_trees
             self.sentences = test_sentences
-            self.dict = test_dict
+            if test_dict:
+                self.dict = test_dict
             self.labels = []
             for i in range(0, len(self.trees)):
                 self.labels.append(self.trees[i].gold_label)
         else:
             self.trees = skladnica_trees + reviews_trees  # list concatenation
             self.sentences = skladnica_sentences + reviews_sentences
-            self.dict = skladnica_dict + reviews_dict
+            if skladnica_dict or reviews_dict:
+                self.dict = skladnica_dict + reviews_dict
             self.labels = []
 
             for i in range(0, len(self.trees)):
@@ -57,7 +60,7 @@ class SSTDataset(data.Dataset):
 
     @classmethod
     def create_dataset_from_user_input(cls, sentence_path, parents_path,
-                                       vocab=None, num_classes=None,dictionaries = []):
+                                       vocab=None, num_classes=None,dictionaries = [], wordnet=None):
         dataset = cls()
         dataset.vocab = vocab
         dataset.num_classes = num_classes
@@ -68,8 +71,11 @@ class SSTDataset(data.Dataset):
             for parents, tokens in zip(parents_file.readlines(),
                                        tokens_file.readlines())
         ]
-        dataset.sentences = dataset.read_sentences(sentence_path)
+        dataset.sentences, dict = dataset.read_sentences(sentence_path, dictionaries)
         dataset.labels = torch.Tensor(len(dataset.sentences))
+        if wordnet:
+            dict = get_dict_sentiments(wordnet, dict)
+        dataset.dict = dict
         return dataset
 
     def __len__(self):
@@ -79,7 +85,8 @@ class SSTDataset(data.Dataset):
         tree = deepcopy(self.trees[index])
         sent = deepcopy(self.sentences[index])
         label = deepcopy(self.labels[index])
-        dict = deepcopy(self.dict[index])
+
+        dict = deepcopy(self.dict[index]) if self.dict else None
         return tree, sent, dict, label
 
     def create_trees(self, path, file_type, dictionaries):
@@ -93,16 +100,24 @@ class SSTDataset(data.Dataset):
                 filename_tokens=os.path.join(path, file_type + '_sentence.txt'),
                 filename_relations=os.path.join(path, file_type + '_rels.txt'),
             )
-            return sentences, trees, dictionary_sentiments
+            wordnet_filename = os.path.join(path, file_type + '_wordnet.txt')
+
+            if os.path.exists(wordnet_filename):
+                sentiments = get_dict_sentiments(wordnet_filename, dictionary_sentiments)
+                return sentences, trees, sentiments
+            else:
+                return sentences, trees, dictionary_sentiments
         else:
             return None, None, None
 
     def read_sentences(self, filename, dictionaries):
         with open(filename, 'r', encoding='utf-8') as f:
             lines = f.readlines()
-            sentences = [self.read_sentence(line)
-                         for line in tqdm(lines)]
-            sentiments = [self.get_sentiments(line, dictionaries) for line in tqdm(lines)]
+            sentences = [self.read_sentence(line) for line in tqdm(lines)]
+
+            sentiments = [self.get_sentiments(line, dictionaries) for line in tqdm(lines)] if dictionaries else None
+
+
         return sentences, sentiments
 
     def get_sentiments(self, line, dictionaries):
@@ -182,3 +197,14 @@ class SSTDataset(data.Dataset):
         root._viz_labels = labels
         return root
 
+def get_dict_sentiments(wordnet_filename, dictionaries):
+    sentiments = []
+    with open(wordnet_filename, 'r', encoding='utf-8') as f:
+        wordnet_sentiments = [F.torch.unsqueeze(torch.FloatTensor(list(map(int, line.split()))), 1) for line in
+                              f.readlines()]
+    if dictionaries:
+        for idx, _ in enumerate(wordnet_sentiments):
+            sentiments.append(torch.cat((dictionaries[idx], wordnet_sentiments[idx]), 1))
+    else:
+        sentiments = wordnet_sentiments
+    return sentiments

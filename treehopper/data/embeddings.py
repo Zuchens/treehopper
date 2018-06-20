@@ -11,6 +11,7 @@ from data.vocab import Vocab
 
 
 def load_word_vectors(embeddings_path):
+    model =  None
     if os.path.isfile(embeddings_path + '.pth') and \
             os.path.isfile(embeddings_path + '.vocab'):
         print('==> File found, loading to memory')
@@ -21,6 +22,8 @@ def load_word_vectors(embeddings_path):
         model = KeyedVectors.load(embeddings_path + ".model")
     if os.path.isfile(embeddings_path + '.vec'):
         model = FastText.load_word2vec_format(embeddings_path + '.vec')
+    if model is None:
+        raise Exception("Couldn't load a model")
     list_of_tokens = model.vocab.keys()
     vectors = torch.zeros(len(list_of_tokens), model.vector_size)
     with open(embeddings_path + '.vocab', 'w', encoding='utf-8') as f:

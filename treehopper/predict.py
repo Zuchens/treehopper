@@ -14,7 +14,8 @@ def predict(args):
         args.input_sentences, args.input_parents,
         trainer_instance.model.vocab,
         num_classes=3,
-        dictionaries=trainer_instance.model.dictionaries
+        dictionaries=trainer_instance.model.dictionaries,
+        wordnet=args.input_wordnet
     )
     test_trees = trainer_instance.predict(test_dataset)
     return test_trees
@@ -40,6 +41,8 @@ if __name__ == "__main__":
                         default="test/polevaltest_parents.txt")
     parser.add_argument('--input_sentences', help='Path to sentence input directory',
                         default="test/polevaltest_sentence.txt")
+    parser.add_argument('--input_wordnet', help='Path to wordnet input directory',
+                        default="test/polevaltest_wordnet.txt")
     parser.add_argument('--output', help='Path to file with predictions', default="predictions.txt")
     args = train.set_arguments({}, parser)
     predictions = predict(args)

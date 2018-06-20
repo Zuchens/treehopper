@@ -7,7 +7,7 @@ import torch
 import torch.optim as optim
 from torch import nn
 
-from dictionary import load_dictionary
+from config import load_dictionary
 from model.model import TreeLSTMSentiment
 from model.sentiment_trainer import SentimentTrainer
 
@@ -32,8 +32,8 @@ def train(train_dataset, dev_dataset, vocab, args, dictionaries):
 
     # initialize model, criterion/loss_function, optimizer
     embedding_model = load_embedding_model(args,vocab)
-
-    model = TreeLSTMSentiment(args=args, criterion=criterion, embeddings=embedding_model, vocab=vocab, dictionaries = dictionaries)
+    dict_size = len(dictionaries) + 1 if hasattr(train_dataset, "dict") else 0
+    model = TreeLSTMSentiment(args=args, criterion=criterion, embeddings=embedding_model, vocab=vocab, dictionaries = dictionaries, dict_size = dict_size)
 
     if args.cuda:
         model.cuda()
@@ -43,7 +43,7 @@ def train(train_dataset, dev_dataset, vocab, args, dictionaries):
 
     # create trainer object for training and testing
     trainer = SentimentTrainer(args, model ,criterion, optimizer, embedding_model)
-    experiment_dir = os.path.join(os.getcwd(), args.saved, "models_" + args.name)
+    experiment_dir = os.path.join(os.getcwd(), args.saved, "models")
     if not os.path.exists(experiment_dir):
         os.makedirs(experiment_dir)
         open(experiment_dir+"/"+"config.txt", "w+").write(str(args))
@@ -56,7 +56,7 @@ def train(train_dataset, dev_dataset, vocab, args, dictionaries):
             dev_acc = torch.mean(dev_acc)
             print('==> Train loss   : %f \t' % train_loss, end="")
             print('Epoch ', epoch, 'dev percentage ', dev_acc)
-        model_filename = experiment_dir + '/' +'model_' + str(epoch) + '.pth'
+        model_filename = experiment_dir + '/' +'model.pth'
         torch.save(model, model_filename)
         if dev_acc > max_dev:
             max_dev = dev_acc
