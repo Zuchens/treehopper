@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 echo "Creating directories"
-mkdir -p data/pol/ models/ results/ finals/ treehopper/tmp/
+mkdir -p data/pol/ models/ results/ finals/ tmp/
 
 echo "Download fastText word vectors for Polish"
 curl -O https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.pl.zip
