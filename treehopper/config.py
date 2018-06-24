@@ -14,9 +14,9 @@ def parse_args_train(parser = None):
                             help='name for log and saved models')
         parser.add_argument('--data', default='training-treebank',
                             help='path to dataset')
-        parser.add_argument('--emb_dir', default='resources/pol/fasttext',
+        parser.add_argument('--emb_dir', default='resources/pol/fasttext/',
                             help='directory with embeddings')
-        parser.add_argument('--emb_file', default='wiki',
+        parser.add_argument('--emb_file', default='wiki.pl',
                             help='file with embeddings')
         parser.add_argument('--batchsize', default=25, type=int,
                             help='batchsize for optimizer updates')
